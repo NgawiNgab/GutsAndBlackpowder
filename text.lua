@@ -540,13 +540,67 @@ function changeMelee(value)
    end
 end
 
--- Load Kavo UI Library
 local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Kavo.CreateLib("G&B Hub - Xavier I.N.C", "DarkTheme")
 
--- Main Tab
+-- ===== VARIABEL UTAMA ===== --
+local UIS = game:GetService("UserInputService")
+local MainFrame = Window.MainFrame
+local Minimized = false
+
+-- ===== FUNGSI TOGGLE GUI ===== --
+local function ToggleGUI()
+    Minimized = not Minimized
+    MainFrame.Visible = not Minimized
+end
+
+-- ===== TOMBOL MINIMIZE DEFAULT (POJOK KANAN) ===== --
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Name = "MinimizeBtn"
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 14
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Warna merah
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(1, -30, 0, 5)
+CloseBtn.Parent = MainFrame
+CloseBtn.MouseButton1Click:Connect(ToggleGUI)
+
+-- ===== TOMBOL MINIMIZE TAMBAHAN DI DALAM TAB ===== --
 local MainTab = Window:NewTab("Main")
-local MainSection = MainTab:NewSection("Main Functions")
+local UtilitySection = MainTab:NewSection("Utility")
+
+-- Tombol Minimize Kustom
+UtilitySection:NewButton("Minimize GUI", "Sembunyikan/tampilkan GUI", function()
+    ToggleGUI()
+end)
+
+-- ===== KEYBIND (TOMBOL X) ===== --
+UIS.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.X then
+        ToggleGUI()
+    end
+end)
+
+-- ===== FITUR GESER GUI ===== --
+local dragStart, startPos
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement and dragStart then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
 
 -- WalkSpeed Toggle
 MainSection:NewToggle("WalkSpeed Freeze", "Freezes your WalkSpeed", function(state)
