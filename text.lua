@@ -540,67 +540,36 @@ function changeMelee(value)
    end
 end
 
+-- Load Kavo UI Library
 local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Kavo.CreateLib("G&B Hub - Xavier I.N.C", "DarkTheme")
 
--- ===== VARIABEL UTAMA ===== --
-local UIS = game:GetService("UserInputService")
-local MainFrame = Window.MainFrame
-local Minimized = false
+-- Toggle Minimize Function
+local minimized = false
+local UserInputService = game:GetService("UserInputService")
 
--- ===== FUNGSI TOGGLE GUI ===== --
-local function ToggleGUI()
-    Minimized = not Minimized
-    MainFrame.Visible = not Minimized
-end
+UserInputService.InputBegan:Connect(function(input, isProcessed)
+    if not isProcessed and input.KeyCode == Enum.KeyCode.K then
+        minimized = not minimized
+        if minimized then
+            for _, tab in pairs(Window.UI.TabHolder:GetChildren()) do
+                if tab:IsA("Frame") then
+                    tab.Visible = false
+                end
+            end
+        else
+            for _, tab in pairs(Window.UI.TabHolder:GetChildren()) do
+                if tab:IsA("Frame") then
+                    tab.Visible = true
+                end
+            end
+        end
+    end
+end)
 
--- ===== TOMBOL MINIMIZE DEFAULT (POJOK KANAN) ===== --
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Name = "MinimizeBtn"
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.TextSize = 14
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50) -- Warna merah
-CloseBtn.Size = UDim2.new(0, 25, 0, 25)
-CloseBtn.Position = UDim2.new(1, -30, 0, 5)
-CloseBtn.Parent = MainFrame
-CloseBtn.MouseButton1Click:Connect(ToggleGUI)
-
--- ===== TOMBOL MINIMIZE TAMBAHAN DI DALAM TAB ===== --
+-- Main Tab
 local MainTab = Window:NewTab("Main")
-local UtilitySection = MainTab:NewSection("Utility")
-
--- Tombol Minimize Kustom
-UtilitySection:NewButton("Minimize GUI", "Sembunyikan/tampilkan GUI", function()
-    ToggleGUI()
-end)
-
--- ===== KEYBIND (TOMBOL X) ===== --
-UIS.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.X then
-        ToggleGUI()
-    end
-end)
-
--- ===== FITUR GESER GUI ===== --
-local dragStart, startPos
-MainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragStart = input.Position
-        startPos = MainFrame.Position
-    end
-end)
-
-MainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement and dragStart then
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y
-        )
-    end
-end)
+local MainSection = MainTab:NewSection("Main Functions")
 
 -- WalkSpeed Toggle
 MainSection:NewToggle("WalkSpeed Freeze", "Freezes your WalkSpeed", function(state)
@@ -673,3 +642,68 @@ Window:NewAlert({
     Duration = 6
 })
 setclipboard("https://discord.gg/v8hYqpn2")
+
+-- GUI Toggle Box
+local ScreenGui = Instance.new("ScreenGui")
+local ToggleBox = Instance.new("Frame")
+local UICorner = Instance.new("UICorner")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+-- Setup GUI
+ScreenGui.Parent = game.CoreGui
+ScreenGui.Name = "MiniToggleGUI"
+
+ToggleBox.Parent = ScreenGui
+ToggleBox.Size = UDim2.new(0, 50, 0, 50) -- ukuran kotak
+ToggleBox.Position = UDim2.new(0.05, 0, 0.3, 0) -- posisi awal di layar
+ToggleBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- warna hitam
+ToggleBox.BackgroundTransparency = 0.2 -- agak transparan biar keren
+
+UICorner.Parent = ToggleBox
+UICorner.CornerRadius = UDim.new(0, 10) -- sudut rounded
+
+-- Drag Function
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    ToggleBox.Position = UDim2.new(
+        startPos.X.Scale, startPos.X.Offset + delta.X,
+        startPos.Y.Scale, startPos.Y.Offset + delta.Y
+    )
+end
+
+ToggleBox.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = ToggleBox.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+ToggleBox.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- Klik untuk pencet 'K'
+ToggleBox.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        keypress(0x4B) -- Key K
+        keyrelease(0x4B)
+    end
+end)
