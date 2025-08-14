@@ -544,87 +544,150 @@ end
 local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Kavo.CreateLib("G&B Hub - Xavier I.N.C", "DarkTheme")
 
--- Toggle Minimize Function
-local minimized = false
-local UserInputService = game:GetService("UserInputService")
+-- Default keybind for minimize
+local minimizeKey = Enum.KeyCode.G
 
-UserInputService.InputBegan:Connect(function(input, isProcessed)
-    if not isProcessed and input.KeyCode == Enum.KeyCode.K then
-        minimized = not minimized
-        if minimized then
-            for _, tab in pairs(Window.UI.TabHolder:GetChildren()) do
-                if tab:IsA("Frame") then
-                    tab.Visible = false
-                end
-            end
-        else
-            for _, tab in pairs(Window.UI.TabHolder:GetChildren()) do
-                if tab:IsA("Frame") then
-                    tab.Visible = true
-                end
-            end
+-- Function to toggle UI
+local function toggleUI()
+    Window:Toggle()
+end
+
+-- Keyboard input for PC players
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.KeyCode == minimizeKey then
+            toggleUI()
         end
     end
 end)
 
--- Main Tab
+-- ===== Mobile Toggle GUI =====
+local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = PlayerGui
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 60, 0, 60) -- square
+ToggleButton.Position = UDim2.new(0.9, 0, 0.9, 0) -- default bottom-right
+ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ToggleButton.Text = "G" -- shows current keybind
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.TextScaled = true
+ToggleButton.AutoButtonColor = true
+ToggleButton.Parent = ScreenGui
+ToggleButton.ClipsDescendants = true
+ToggleButton.BorderSizePixel = 0
+ToggleButton.BackgroundTransparency = 0.1
+ToggleButton.AnchorPoint = Vector2.new(0.5,0.5)
+ToggleButton.TextStrokeTransparency = 0.5
+ToggleButton.Rounded = true
+
+-- Drag functionality
+local dragging = false
+local dragInput, mousePos, framePos
+
+ToggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        mousePos = input.Position
+        framePos = ToggleButton.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+ToggleButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - mousePos
+        ToggleButton.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Toggle Kavo UI on button press
+ToggleButton.MouseButton1Click:Connect(toggleUI)
+
+-- ===== Main Tab =====
 local MainTab = Window:NewTab("Main")
 local MainSection = MainTab:NewSection("Main Functions")
 
--- WalkSpeed Toggle
+local walkSpeedToggled = false
+local walkSpeedValue = 16
+
+local function changeWalkSpeed(value, toggled)
+    if toggled then
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
+    else
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 16
+    end
+end
+
 MainSection:NewToggle("WalkSpeed Freeze", "Freezes your WalkSpeed", function(state)
     walkSpeedToggled = state
     changeWalkSpeed(walkSpeedValue, walkSpeedToggled)
 end)
 
--- WalkSpeed Input
 MainSection:NewTextBox("WalkSpeed Value", "Default: 16", function(value)
     walkSpeedValue = tonumber(value) or 16
     changeWalkSpeed(walkSpeedValue, walkSpeedToggled)
 end)
 
 -- HeadLock Toggle
+local function changeBayonet(state) end
+local function changeMelee(state) end
+
 MainSection:NewToggle("Head Lock", "Locks attacks to head", function(state)
     changeBayonet(state)
     changeMelee(state)
 end)
 
 -- Lights Button
+local function onLights() end
 MainSection:NewButton("Lights On (Saint Petersburg)", "Turns on map lights", function()
     onLights()
 end)
 
 -- AutoPlay Toggle
+local autoplay = false
 MainSection:NewToggle("Auto Play", "Auto-hits notes", function(state)
     autoplay = state
 end)
 
--- ESP Tab
+-- ===== ESP Tab =====
 local ESPTab = Window:NewTab("ESP")
 local ESPSection = ESPTab:NewSection("Zombie ESP")
 
--- Zombie ESP Toggles
+local espRToggled, espBToggled, espIToggled, espCuToogled = false, false, false, false
+
 ESPSection:NewToggle("ESP Runner", "Highlights fast zombies", function(state)
     espRToggled = state
 end)
-
 ESPSection:NewToggle("ESP Bomber", "Highlights barrel zombies", function(state)
     espBToggled = state
 end)
-
 ESPSection:NewToggle("ESP Igniter", "Highlights lantern zombies", function(state)
     espIToggled = state
 end)
-
 ESPSection:NewToggle("ESP Cuirassier", "Highlights sword zombies", function(state)
     espCuToogled = state
 end)
 
--- Player ESP Tab
+-- ===== Player Tab =====
 local PlayerTab = Window:NewTab("Player")
 local PlayerSection = PlayerTab:NewSection("Player ESP")
 
--- Player ESP Toggles
+local espLifeToggled = false
+local function checkPlayersLife() end
+
 PlayerSection:NewToggle("Medic Player ESP", "Highlights low HP players", function(state)
     espLifeToggled = state
     checkPlayersLife()
@@ -635,75 +698,25 @@ PlayerSection:NewToggle("Father Infection ESP", "Highlights infected players", f
     checkPlayersLife()
 end)
 
--- Notifikasi Discord (Opsional)
+-- ===== Misc Tab =====
+local MiscTab = Window:NewTab("Misc")
+local MiscSection = MiscTab:NewSection("Miscellaneous")
+
+MiscSection:NewButton("Change Minimize Key", "Change Kavo UI Minimize Keybind", function()
+    -- For demo, toggles between G and H; update UI button text
+    if minimizeKey == Enum.KeyCode.G then
+        minimizeKey = Enum.KeyCode.H
+    else
+        minimizeKey = Enum.KeyCode.G
+    end
+    ToggleButton.Text = minimizeKey.Name -- update mobile button to match keybind
+    print("Minimize key is now: " .. minimizeKey.Name)
+end)
+
+-- ===== Discord Notification =====
 Window:NewAlert({
     Title = "Discord",
     Content = "Join our Discord: discord.gg/v8hYqpn2",
     Duration = 6
 })
 setclipboard("https://discord.gg/v8hYqpn2")
-
--- GUI Toggle Box
-local ScreenGui = Instance.new("ScreenGui")
-local ToggleBox = Instance.new("Frame")
-local UICorner = Instance.new("UICorner")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-
--- Setup GUI
-ScreenGui.Parent = game.CoreGui
-ScreenGui.Name = "MiniToggleGUI"
-
-ToggleBox.Parent = ScreenGui
-ToggleBox.Size = UDim2.new(0, 50, 0, 50) -- ukuran kotak
-ToggleBox.Position = UDim2.new(0.05, 0, 0.3, 0) -- posisi awal di layar
-ToggleBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- warna hitam
-ToggleBox.BackgroundTransparency = 0.2 -- agak transparan biar keren
-
-UICorner.Parent = ToggleBox
-UICorner.CornerRadius = UDim.new(0, 10) -- sudut rounded
-
--- Drag Function
-local dragging, dragInput, dragStart, startPos
-
-local function update(input)
-    local delta = input.Position - dragStart
-    ToggleBox.Position = UDim2.new(
-        startPos.X.Scale, startPos.X.Offset + delta.X,
-        startPos.Y.Scale, startPos.Y.Offset + delta.Y
-    )
-end
-
-ToggleBox.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = ToggleBox.Position
-
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-ToggleBox.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        update(input)
-    end
-end)
-
--- Klik untuk pencet 'K'
-ToggleBox.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        keypress(0x4B) -- Key K
-        keyrelease(0x4B)
-    end
-end)
