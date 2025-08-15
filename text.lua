@@ -544,150 +544,64 @@ end
 local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Kavo.CreateLib("G&B Hub - Xavier I.N.C", "DarkTheme")
 
--- Default keybind for minimize
-local minimizeKey = Enum.KeyCode.G
-
--- Function to toggle UI
-local function toggleUI()
-    Window:Toggle()
-end
-
--- Keyboard input for PC players
-game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard then
-        if input.KeyCode == minimizeKey then
-            toggleUI()
-        end
-    end
-end)
-
--- ===== Mobile Toggle GUI =====
-local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = PlayerGui
-
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Size = UDim2.new(0, 60, 0, 60) -- square
-ToggleButton.Position = UDim2.new(0.9, 0, 0.9, 0) -- default bottom-right
-ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-ToggleButton.Text = "G" -- shows current keybind
-ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.Font = Enum.Font.SourceSansBold
-ToggleButton.TextScaled = true
-ToggleButton.AutoButtonColor = true
-ToggleButton.Parent = ScreenGui
-ToggleButton.ClipsDescendants = true
-ToggleButton.BorderSizePixel = 0
-ToggleButton.BackgroundTransparency = 0.1
-ToggleButton.AnchorPoint = Vector2.new(0.5,0.5)
-ToggleButton.TextStrokeTransparency = 0.5
-ToggleButton.Rounded = true
-
--- Drag functionality
-local dragging = false
-local dragInput, mousePos, framePos
-
-ToggleButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        mousePos = input.Position
-        framePos = ToggleButton.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-ToggleButton.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - mousePos
-        ToggleButton.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
-    end
-end)
-
--- Toggle Kavo UI on button press
-ToggleButton.MouseButton1Click:Connect(toggleUI)
-
--- ===== Main Tab =====
+-- Main Tab
 local MainTab = Window:NewTab("Main")
 local MainSection = MainTab:NewSection("Main Functions")
 
-local walkSpeedToggled = false
-local walkSpeedValue = 16
-
-local function changeWalkSpeed(value, toggled)
-    if toggled then
-        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
-    else
-        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 16
-    end
-end
-
+-- WalkSpeed Toggle
 MainSection:NewToggle("WalkSpeed Freeze", "Freezes your WalkSpeed", function(state)
     walkSpeedToggled = state
     changeWalkSpeed(walkSpeedValue, walkSpeedToggled)
 end)
 
+-- WalkSpeed Input
 MainSection:NewTextBox("WalkSpeed Value", "Default: 16", function(value)
     walkSpeedValue = tonumber(value) or 16
     changeWalkSpeed(walkSpeedValue, walkSpeedToggled)
 end)
 
 -- HeadLock Toggle
-local function changeBayonet(state) end
-local function changeMelee(state) end
-
 MainSection:NewToggle("Head Lock", "Locks attacks to head", function(state)
     changeBayonet(state)
     changeMelee(state)
 end)
 
 -- Lights Button
-local function onLights() end
 MainSection:NewButton("Lights On (Saint Petersburg)", "Turns on map lights", function()
     onLights()
 end)
 
 -- AutoPlay Toggle
-local autoplay = false
 MainSection:NewToggle("Auto Play", "Auto-hits notes", function(state)
     autoplay = state
 end)
 
--- ===== ESP Tab =====
+-- ESP Tab
 local ESPTab = Window:NewTab("ESP")
 local ESPSection = ESPTab:NewSection("Zombie ESP")
 
-local espRToggled, espBToggled, espIToggled, espCuToogled = false, false, false, false
-
+-- Zombie ESP Toggles
 ESPSection:NewToggle("ESP Runner", "Highlights fast zombies", function(state)
     espRToggled = state
 end)
+
 ESPSection:NewToggle("ESP Bomber", "Highlights barrel zombies", function(state)
     espBToggled = state
 end)
+
 ESPSection:NewToggle("ESP Igniter", "Highlights lantern zombies", function(state)
     espIToggled = state
 end)
+
 ESPSection:NewToggle("ESP Cuirassier", "Highlights sword zombies", function(state)
     espCuToogled = state
 end)
 
--- ===== Player Tab =====
+-- Player ESP Tab
 local PlayerTab = Window:NewTab("Player")
 local PlayerSection = PlayerTab:NewSection("Player ESP")
 
-local espLifeToggled = false
-local function checkPlayersLife() end
-
+-- Player ESP Toggles
 PlayerSection:NewToggle("Medic Player ESP", "Highlights low HP players", function(state)
     espLifeToggled = state
     checkPlayersLife()
@@ -698,22 +612,12 @@ PlayerSection:NewToggle("Father Infection ESP", "Highlights infected players", f
     checkPlayersLife()
 end)
 
--- ===== Misc Tab =====
-local MiscTab = Window:NewTab("Misc")
-local MiscSection = MiscTab:NewSection("Miscellaneous")
-
-MiscSection:NewButton("Change Minimize Key", "Change Kavo UI Minimize Keybind", function()
-    -- For demo, toggles between G and H; update UI button text
-    if minimizeKey == Enum.KeyCode.G then
-        minimizeKey = Enum.KeyCode.H
-    else
-        minimizeKey = Enum.KeyCode.G
-    end
-    ToggleButton.Text = minimizeKey.Name -- update mobile button to match keybind
-    print("Minimize key is now: " .. minimizeKey.Name)
+-- For Toggling UI
+Section:NewKeybind("KeybindText", "KeybindInfo", Enum.KeyCode.F, function()
+	Library:ToggleUI()
 end)
 
--- ===== Discord Notification =====
+-- Notifikasi Discord (Opsional)
 Window:NewAlert({
     Title = "Discord",
     Content = "Join our Discord: discord.gg/v8hYqpn2",
