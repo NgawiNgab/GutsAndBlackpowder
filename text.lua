@@ -542,7 +542,7 @@ end
 
 -- Load Kavo UI Library
 local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/ZeianRussell/Kavo-UI-Library/main/Movable.source.lua"))()
-local Window = Library.CreateLib("G&B Hub - Xavier I.N.C", "DarkTheme")
+local Window = Kavo.CreateLib("G&B Hub - Xavier I.N.C", "DarkTheme")
 
 -- Buat toggle button
 local gui = Instance.new("ScreenGui")
@@ -564,7 +564,7 @@ UICorner.CornerRadius = UDim.new(0, 5)
 UICorner.Parent = TextButton
 
 TextButton.MouseButton1Click:Connect(function()
-    Library:ToggleUI()
+    Kavo:ToggleUI()
 end)
 
 -- Main Tab
