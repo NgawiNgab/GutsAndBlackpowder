@@ -541,8 +541,8 @@ function changeMelee(value)
 end
 
 -- Load Kavo UI Library
-local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Kavo.CreateLib("G&B Hub - Xavier I.N.C", "DarkTheme")
+local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/ZeianRussell/Kavo-UI-Library/main/Movable.source.lua"))()
+local Window = Library.CreateLib("G&B Hub - Xavier I.N.C", "DarkTheme")
 
 -- Buat toggle button
 local gui = Instance.new("ScreenGui")
@@ -557,6 +557,7 @@ TextButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 TextButton.Text = "Toggle"
 TextButton.Font = Enum.Font.Gotham
 TextButton.Parent = gui
+TextButton.Draggable = true
 
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 5)
