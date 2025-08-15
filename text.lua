@@ -544,6 +544,28 @@ end
 local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/ZeianRussell/Kavo-UI-Library/main/Movable.source.lua"))()
 local Window = Kavo.CreateLib("G&B Hub - Xavier I.N.C", "DarkTheme")
 
+-- Buat toggle button
+local gui = Instance.new("ScreenGui")
+gui.Name = "patrickGui"
+gui.Parent = game.CoreGui
+
+local TextButton = Instance.new("TextButton")
+TextButton.Size = UDim2.new(0.1, 0, 0.1, 0)
+TextButton.Position = UDim2.new(0.5, 0, 0.5, 0)
+TextButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+TextButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextButton.Text = "Toggle"
+TextButton.Font = Enum.Font.Gotham
+TextButton.Parent = gui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 5)
+UICorner.Parent = TextButton
+
+TextButton.MouseButton1Click:Connect(function()
+    Library:ToggleUI()
+end)
+
 -- Main Tab
 local MainTab = Window:NewTab("Main")
 local MainSection = MainTab:NewSection("Main Functions")
