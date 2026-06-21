@@ -119,7 +119,7 @@ end
 
 toolEquip = true
 
--- Kill Aura
+-- Kill Aura (original – untouched)
 observerOnline = false
 killAuraToggled = false
 isDead = false
@@ -540,6 +540,22 @@ function changeMelee(value)
    end
 end
 
+-- NEW: HeadLock state variable
+local headLockEnabled = false
+
+-- NEW: Reapply patches on respawn
+local function reapplyHeadLock()
+    if headLockEnabled then
+        changeBayonet(true)
+        changeMelee(true)
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1) -- wait for modules to load
+    reapplyHeadLock()
+end)
+
 -- Load Kavo UI Library
 local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/ZeianRussell/Kavo-UI-Library/main/Movable.source.lua"))()
 local Window = Kavo.CreateLib("G&B Hub - Xavier I.N.C", "DarkTheme")
@@ -583,8 +599,9 @@ MainSection:NewTextBox("WalkSpeed Value", "Default: 16", function(value)
     changeWalkSpeed(walkSpeedValue, walkSpeedToggled)
 end)
 
--- HeadLock Toggle
+-- HeadLock Toggle (modified to store state)
 MainSection:NewToggle("Head Lock", "Locks attacks to head", function(state)
+    headLockEnabled = state
     changeBayonet(state)
     changeMelee(state)
 end)
