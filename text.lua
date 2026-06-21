@@ -119,10 +119,11 @@ end
 
 toolEquip = true
 
--- Kill Aura
-observerOnline = false
+-- Kill Aura (FIXED)
 killAuraToggled = false
-isDead = false
+headLockToggled = false   -- new variable to track head-lock state
+local killAuraRunning = false
+local killAuraThread = nil
 
 local raycastParams = RaycastParams.new()
 raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
@@ -131,82 +132,99 @@ raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 local params = OverlapParams.new()
 params.FilterDescendantsInstances = {LocalPlayer.Character}
 
+-- New createHitBox (recreates if missing)
+function createHitBox()
+    if not LocalPlayer.Character then return nil end
+    local torso = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not torso then return nil end
+    local hitbox = torso:FindFirstChild("Hitbox")
+    if hitbox then return hitbox end
+
+    local newHitbox = Instance.new("Part")
+    newHitbox.Name = "Hitbox"
+    newHitbox.Anchored = false
+    newHitbox.Massless = true
+    newHitbox.CanCollide = false
+    newHitbox.CanTouch = false
+    newHitbox.Transparency = 1
+    newHitbox.Size = Vector3.new(13, 7, 12.5)
+    newHitbox.CFrame = torso.CFrame * CFrame.new(0, 0, -7.8)
+    newHitbox.Parent = torso
+
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = newHitbox
+    weld.Part1 = torso
+    weld.Parent = newHitbox
+
+    return newHitbox
+end
+
+-- New detectEnemy loop (works continuously)
 function detectEnemy(hitbox, hrp)
-    print("Detect enemy Start!")
-    while true do
-        if killAuraToggled == false then
-            print("detectEnemy killed!")
-            isDead = false
-            observerOnline = false
-            return nil
-        end
+    while killAuraToggled and killAuraRunning do
+        if not hitbox or not hitbox.Parent then break end
+        if not LocalPlayer.Character then break end
 
         local parts = workspace:GetPartsInPart(hitbox, params)
-        for i, part in pairs(parts) do
-            if part.parent and part.parent.Name == "m_Zombie" then
-                local Origin = part.parent:WaitForChild("Orig")
-                if Origin.Value ~= nil then
-                    local zombie = Origin.Value:WaitForChild("Zombie")
-                    local childrens = LocalPlayer.Character:GetChildren()
-                    if toolEquip then
-                        local hit = Origin.Value
-                        local zombieHead = workspace:Raycast(hrp.CFrame.Position, hit.Head.CFrame.Position - hrp.CFrame.Position)
-                        local calc = (zombieHead.Position - hrp.CFrame.Position)
-
-                        if calc:Dot(calc) > 1 then
-                            calc = calc.Unit
-                        end
-
-                        if LocalPlayer:DistanceFromCharacter(Origin.Value:FindFirstChild("HumanoidRootPart").CFrame.Position) < 13 then
-                            if zombie.WalkSpeed > 16 then
-                                game:GetService("ReplicatedStorage").Remotes.Gib:FireServer(hit, "Head", hit.Head.CFrame.Position, zombieHead.Normal, true)
-                                game:GetService("Workspace").Players[LocalPlayer.Name]["Heavy Sabre"].RemoteEvent:FireServer("Swing", "Thrust")
-                                game:GetService("Workspace").Players[LocalPlayer.Name]["Heavy Sabre"].RemoteEvent:FireServer("HitZombie", hit, hit.Head.CFrame.Position, true, calc * 25, "Head", zombieHead.Normal)
-                            else
-                                if part.Parent:FindFirstChild("Barrel") == nil then
-                                    game:GetService("ReplicatedStorage").Remotes.Gib:FireServer(hit, "Head", hit.Head.CFrame.Position, zombieHead.Normal, true)
-                                    game:GetService("Workspace").Players[LocalPlayer.Name]["Heavy Sabre"].RemoteEvent:FireServer("Swing", "Thrust")
-                                    game:GetService("Workspace").Players[LocalPlayer.Name]["Heavy Sabre"].RemoteEvent:FireServer("HitZombie", hit, hit.Head.CFrame.Position, true, calc * 25, "Head", zombieHead.Normal)
-                                end
+        for _, part in pairs(parts) do
+            if part.Parent and part.Parent.Name == "m_Zombie" then
+                local origin = part.Parent:FindFirstChild("Orig")
+                if origin and origin.Value then
+                    local zombie = origin.Value
+                    local head = zombie:FindFirstChild("Head")
+                    if head and LocalPlayer.Character:FindFirstChild("Heavy Sabre") then
+                        local dist = (zombie:FindFirstChild("HumanoidRootPart") and zombie.HumanoidRootPart.Position - hrp.Position).Magnitude
+                        if dist < 13 then
+                            -- Raycast to check line of sight
+                            local rayResult = workspace:Raycast(hrp.Position, head.Position - hrp.Position, raycastParams)
+                            if rayResult then
+                                local calc = (head.Position - hrp.Position).Unit
+                                -- Fire remotes
+                                game:GetService("ReplicatedStorage").Remotes.Gib:FireServer(zombie, "Head", head.Position, rayResult.Normal, true)
+                                LocalPlayer.Character["Heavy Sabre"].RemoteEvent:FireServer("Swing", "Thrust")
+                                LocalPlayer.Character["Heavy Sabre"].RemoteEvent:FireServer("HitZombie", zombie, head.Position, true, calc * 25, "Head", rayResult.Normal)
                             end
                         end
                     end
-                end 
+                end
             end
         end
+        task.wait(0.05)
     end
 end
 
-function createHitBox()
-    if LocalPlayer.Character:WaitForChild("HumanoidRootPart"):FindFirstChild("Hitbox") ~= nil then
-        if observerOnline == false then
-            observerOnline = true
-            detectEnemy(LocalPlayer.Character:WaitForChild("HumanoidRootPart"):FindFirstChild("Hitbox"), LocalPlayer.Character:WaitForChild("HumanoidRootPart"))
+-- Start kill aura thread
+function startKillAura()
+    if killAuraRunning then return end
+    killAuraRunning = true
+    killAuraThread = task.spawn(function()
+        while killAuraToggled do
+            -- Wait for character
+            if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                task.wait(0.5)
+                continue
+            end
+            local hitbox = createHitBox()
+            if not hitbox then
+                task.wait(0.5)
+                continue
+            end
+            detectEnemy(hitbox, LocalPlayer.Character.HumanoidRootPart)
+            task.wait(0.1)
         end
+    end)
+end
 
-        return true
-    else
-        local torso = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
-        local hitbox = Instance.new("Part", torso)
-        hitbox.Name = "Hitbox"
-        hitbox.Anchored = false
-        hitbox.Massless = true
-        hitbox.CanCollide = false
-        hitbox.CanTouch = false
-        hitbox.Transparency  = 1
-        hitbox.Size = Vector3.new(13, 7, 12.5)
-        hitbox.CFrame = torso.CFrame * CFrame.new(0, 0, -7.8)
-
-        local weld = Instance.new("WeldConstraint", torso)
-        weld.Part0 = hitbox
-        weld.Part1 = LocalPlayer.Character.HumanoidRootPart
-
-        if observerOnline == false then
-            observerOnline = true
-            detectEnemy(hitbox, LocalPlayer.Character:WaitForChild("HumanoidRootPart"))
-        end
-
-        return true
+-- Stop kill aura and clean up
+function stopKillAura()
+    killAuraRunning = false
+    if killAuraThread then
+        task.cancel(killAuraThread)
+        killAuraThread = nil
+    end
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hitbox = LocalPlayer.Character.HumanoidRootPart:FindFirstChild("Hitbox")
+        if hitbox then hitbox:Destroy() end
     end
 end
 
@@ -271,10 +289,6 @@ namecall = hookmetamethod(game, "__namecall", function(self, ...)
     end
     return namecall(self, ...)
 end)
-
-
--- 255, 169, 108 - 255, 206, 108 ( Outline )
--- HeadLock
 
 -- Bayonet Support
 
@@ -540,6 +554,22 @@ function changeMelee(value)
    end
 end
 
+-- Reapply patches on respawn
+local function reapplyPatches()
+    if headLockToggled then
+        changeBayonet(true)
+        changeMelee(true)
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1) -- wait for modules to load
+    reapplyPatches()
+    if killAuraToggled then
+        startKillAura()
+    end
+end)
+
 -- Load Kavo UI Library
 local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/ZeianRussell/Kavo-UI-Library/main/Movable.source.lua"))()
 local Window = Kavo.CreateLib("G&B Hub - Xavier I.N.C", "DarkTheme")
@@ -585,8 +615,19 @@ end)
 
 -- HeadLock Toggle
 MainSection:NewToggle("Head Lock", "Locks attacks to head", function(state)
+    headLockToggled = state
     changeBayonet(state)
     changeMelee(state)
+end)
+
+-- Kill Aura Toggle (NEW)
+MainSection:NewToggle("Kill Aura", "Automatically attacks nearby zombies", function(state)
+    killAuraToggled = state
+    if state then
+        startKillAura()
+    else
+        stopKillAura()
+    end
 end)
 
 -- Lights Button
